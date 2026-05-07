@@ -1,0 +1,21 @@
+im creating a microservice app . we have 3 services and we are gonna store data in memory  not database. the app is a simpe blog post where user can create post an comment on them. posts service is gonna take care of creating posts and listing all posts and we can reach him on http://localhost:5000 request get and post should go to /posts.
+comments service is the one who's gonna take care of the post comments creation , and listing all comments and it will be running on http://localhost:5001  the endpoint for get and post are:
+/posts/:id/comments where the id is the postId
+the query service is in charge of listing all the posts along with their associated comments
+and it will store data in his own internal data structures.
+Event Bus is gonna receive event from the different services , send them to all services and the one who cares about that event is gonna do the appropriate processing
+
+when a post is created the posts service is gonna emit an event which is an object having
+two properties type : "PostCreated" and data which is the newly created post
+
+
+when a comment is created the comments service will emit an event of type "CommentCreated"
+and the data will be the newly created comment.
+
+
+The only service who cares about these event is query service who will be listening at 
+http://localhost:5002   and he will save the receied data that lives inside the  event
+inside an internal data structure
+
+
+The client app wich a react app is gonna send a request to the query service to fecth the list of posts along with their comments 

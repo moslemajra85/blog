@@ -1,0 +1,27 @@
+import { Post } from './Post'
+import '../styles/PostsList.css'
+
+export function PostsList({ posts, onAddComment }) {
+    if (posts.length === 0) {
+        return (
+            <div className="posts-list">
+                <div className="empty-state">
+                    <p>No posts yet. Create one to get started!</p>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="posts-list">
+            {posts.map((post) => (
+                <Post
+                    key={post.id}
+                    post={post}
+                    comments={post.comments || []}
+                    onAddComment={onAddComment}
+                />
+            ))}
+        </div>
+    )
+}
