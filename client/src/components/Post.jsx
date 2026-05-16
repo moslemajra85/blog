@@ -1,13 +1,10 @@
-import { useState } from 'react'
 import { CommentsList } from './CommentsList'
 import { CreateComment } from './CreateComment'
 import '../styles/Post.css'
 
-export function Post({ post, comments, onAddComment }) {
-    const [expanded, setExpanded] = useState(false)
-
+export function Post({ post, comments, isExpanded, onExpandedChange, onAddComment }) {
     return (
-        <div className={`post-card ${expanded ? 'expanded' : ''}`}>
+        <div className={`post-card ${isExpanded ? 'expanded' : ''}`}>
             <div className="post-header">
                 <div className="post-title-wrapper">
                     <h3 className="post-title">{post.title}</h3>
@@ -15,14 +12,14 @@ export function Post({ post, comments, onAddComment }) {
                 </div>
                 <button
                     className="expand-btn"
-                    onClick={() => setExpanded(!expanded)}
-                    aria-label={expanded ? 'Collapse' : 'Expand'}
+                    onClick={() => onExpandedChange(!isExpanded)}
+                    aria-label={isExpanded ? 'Collapse' : 'Expand'}
                 >
-                    {expanded ? '✕' : '+'}
+                    {isExpanded ? '✕' : '+'}
                 </button>
             </div>
 
-            {expanded && (
+            {isExpanded && (
                 <div className="post-content">
                     <CommentsList comments={comments} />
                     <CreateComment postId={post.id} onAddComment={onAddComment} />

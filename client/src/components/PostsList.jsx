@@ -1,7 +1,7 @@
 import { Post } from './Post'
 import '../styles/PostsList.css'
 
-export function PostsList({ posts, onAddComment }) {
+export function PostsList({ posts, expandedPostId, onExpandedChange, onAddComment }) {
     if (posts.length === 0) {
         return (
             <div className="posts-list">
@@ -19,6 +19,8 @@ export function PostsList({ posts, onAddComment }) {
                     key={post.id}
                     post={post}
                     comments={post.comments || []}
+                    isExpanded={expandedPostId === post.id}
+                    onExpandedChange={(expanded) => onExpandedChange(expanded ? post.id : null)}
                     onAddComment={onAddComment}
                 />
             ))}

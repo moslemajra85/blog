@@ -5,42 +5,57 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// In-memory storage: posts with their comments
 const posts = {};
 
-// GET - retrieve all posts with their comments
-app.get("/posts", (req, res) => {
-  const postsWithComments = Object.values(posts);
-  res.send(postsWithComments);
+const log = (message, meta = {}) => {
+  console.log("[query]", message, meta);
+};
+
+app.get("/health", (req, res) => {
+  log("health check requested");
+  res.send({ status: "OK", service: "query" });
 });
 
-// Event handler - listen to events from Event Bus
+app.get("/posts", (req, res) => {
+  const allPosts = Object.values(posts);
+  log("listing aggregated posts", { count: allPosts.length });
+  res.status(200).send(allPosts);
+});
+
 app.post("/events", (req, res) => {
   const { type, data } = req.body;
 
-  console.log("Query Service received event:", type);
+  log("event received", { type });
 
   if (type === "PostCreated") {
-    // Add new post with empty comments array
     posts[data.id] = {
       ...data,
       comments: [],
     };
-    console.log("Post added to Query Service:", data.id);
+    log("post added to read model", { postId: data.id });
   }
 
   if (type === "CommentCreated") {
-    // Add comment to the corresponding post
-    const { postId, ...comment } = data;
-    if (posts[postId]) {
-      posts[postId].comments.push(comment);
-      console.log("Comment added to post:", postId);
+    const post = posts[data.postId];
+
+    if (!post) {
+      log("comment ignored because post is missing", {
+        postId: data.postId,
+        commentId: data.id,
+      });
+      return res.send({ status: "OK" });
     }
+
+    post.comments.push(data);
+    log("comment added to read model", {
+      postId: data.postId,
+      commentId: data.id,
+    });
   }
 
   res.send({ status: "OK" });
 });
 
-app.listen(5002, () => {
-  console.log("Query Service is running on port 5002");
+app.listen(4002, () => {
+  log("service running", { port: 4002 });
 });

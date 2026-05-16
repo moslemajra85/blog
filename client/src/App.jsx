@@ -1,41 +1,59 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { CreatePost } from './components/CreatePost'
 import { PostsList } from './components/PostsList'
 import './styles/App.css'
 
-const QUERY_SERVICE_URL = 'http://localhost:5002'
-const POSTS_SERVICE_URL = 'http://localhost:5000'
-const COMMENTS_SERVICE_URL = 'http://localhost:5001'
+const QUERY_SERVICE_URL = 'http://localhost:4002'
+const POSTS_SERVICE_URL = 'http://localhost:4000'
+const COMMENTS_SERVICE_URL = 'http://localhost:4001'
+
+const parseErrorMessage = async (response, fallbackMessage) => {
+  try {
+    const body = await response.json()
+    return body?.error || fallbackMessage
+  } catch {
+    return fallbackMessage
+  }
+}
 
 function App() {
   const [posts, setPosts] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [expandedPostId, setExpandedPostId] = useState(null)
 
-  // Fetch posts with comments from Query Service
-  const fetchPosts = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const response = await fetch(`${QUERY_SERVICE_URL}/posts`)
-      if (!response.ok) throw new Error('Failed to fetch posts')
-      const data = await response.json()
-      setPosts(data || [])
-    } catch (err) {
-      console.error('Error fetching posts:', err)
-      setError('Failed to load posts. Make sure all services are running.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const fetchPosts = useCallback(() => {
+    return fetch(`${QUERY_SERVICE_URL}/posts`)
+      .then(async (response) => {
+        if (!response.ok) {
+          const message = await parseErrorMessage(response, 'Failed to load posts')
+          throw new Error(message)
+        }
 
-  // Fetch posts on component mount and set up polling
+        return response.json()
+      })
+      .then((data) => {
+        setPosts(Array.isArray(data) ? data : [])
+        setError(null)
+      })
+      .catch((err) => {
+        console.error('Error fetching posts:', err)
+        setError('Could not load posts. Make sure the query service is running on port 4002.')
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [])
+
   useEffect(() => {
     fetchPosts()
-    // Poll for updates every 2 seconds
-    const interval = setInterval(fetchPosts, 2000)
-    return () => clearInterval(interval)
-  }, [])
+
+    const pollingId = setInterval(() => {
+      fetchPosts()
+    }, 2000)
+
+    return () => clearInterval(pollingId)
+  }, [fetchPosts])
 
   const handleAddPost = async (title) => {
     try {
@@ -44,12 +62,18 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title }),
       })
-      if (!response.ok) throw new Error('Failed to create post')
-      // Wait a moment for the event to propagate, then fetch
-      setTimeout(fetchPosts, 500)
+
+      if (!response.ok) {
+        const message = await parseErrorMessage(response, 'Failed to create post')
+        throw new Error(message)
+      }
+
+      const createdPost = await response.json()
+      setExpandedPostId(createdPost.id)
+      await fetchPosts()
     } catch (err) {
       console.error('Error creating post:', err)
-      setError('Failed to create post')
+      setError(err.message || 'Could not create post.')
     }
   }
 
@@ -60,12 +84,17 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
       })
-      if (!response.ok) throw new Error('Failed to create comment')
-      // Wait a moment for the event to propagate, then fetch
-      setTimeout(fetchPosts, 500)
+
+      if (!response.ok) {
+        const message = await parseErrorMessage(response, 'Failed to create comment')
+        throw new Error(message)
+      }
+
+      setExpandedPostId(postId)
+      await fetchPosts()
     } catch (err) {
       console.error('Error creating comment:', err)
-      setError('Failed to create comment')
+      setError(err.message || 'Could not create comment.')
     }
   }
 
@@ -80,11 +109,13 @@ function App() {
 
       <div className="app-content">
         <CreatePost onAddPost={handleAddPost} />
-        {loading ? (
+        {isLoading ? (
           <div className="loading-spinner">Loading posts...</div>
         ) : (
           <PostsList
             posts={posts}
+            expandedPostId={expandedPostId}
+            onExpandedChange={setExpandedPostId}
             onAddComment={handleAddComment}
           />
         )}
