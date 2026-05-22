@@ -1,0 +1,4 @@
+CREATE DATABASE posts_db;
+CREATE DATABASE comments_db;
+CREATE DATABASE query_db;
+CREATE DATABASE event_bus_db;

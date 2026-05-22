@@ -1,0 +1,95 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: blog
+      POSTGRES_PASSWORD: blog
+      POSTGRES_DB: blog
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blog -d posts_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  event-bus:
+    build: ./event-bus
+    ports:
+      - "4003:4003"
+    environment:
+      PORT: 4003
+      DATABASE_URL: postgresql://blog:blog@postgres:5432/event_bus_db
+      SERVICE_URLS: http://posts:4000/events,http://comments:4001/events,http://query:4002/events,http://moderation:4004/events
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  posts:
+    build: ./posts
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://blog:blog@postgres:5432/posts_db
+      EVENT_BUS_URL: http://event-bus:4003
+    depends_on:
+      postgres:
+        condition: service_healthy
+      event-bus:
+        condition: service_started
+
+  comments:
+    build: ./comments
+    ports:
+      - "4001:4001"
+    environment:
+      PORT: 4001
+      DATABASE_URL: postgresql://blog:blog@postgres:5432/comments_db
+      EVENT_BUS_URL: http://event-bus:4003
+    depends_on:
+      postgres:
+        condition: service_healthy
+      event-bus:
+        condition: service_started
+
+  query:
+    build: ./query
+    ports:
+      - "4002:4002"
+    environment:
+      PORT: 4002
+      DATABASE_URL: postgresql://blog:blog@postgres:5432/query_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      event-bus:
+        condition: service_started
+
+  moderation:
+    build: ./moderation
+    environment:
+      PORT: 4004
+      EVENT_BUS_URL: http://event-bus:4003
+    depends_on:
+      event-bus:
+        condition: service_started
+
+  client:
+    build: ./client
+    ports:
+      - "5199:5173"
+    environment:
+      VITE_QUERY_SERVICE_URL: http://localhost:4002
+      VITE_POSTS_SERVICE_URL: http://localhost:4000
+      VITE_COMMENTS_SERVICE_URL: http://localhost:4001
+    depends_on:
+      - posts
+      - comments
+      - query
+
+volumes:
+  postgres_data:

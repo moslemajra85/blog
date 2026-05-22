@@ -11,14 +11,14 @@
     ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
     │   Posts      │ │  Comments    │ │    Query     │
     │   Service    │ │   Service    │ │   Service    │
-    │   (5000)     │ │   (5001)     │ │   (5002)     │
+    │   (4000)     │ │   (4001)     │ │   (4002)     │
     └──────┬───────┘ └──────┬───────┘ └──────▲───────┘
            │                │                │
            └────────────────┼────────────────┘
                             │
                       ┌─────▼──────┐
                       │  Event Bus  │
-                      │   (4005)    │
+                      │   (4003)    │
                       └─────▲──────┘
                       Broadcasting
 ```
@@ -32,7 +32,7 @@ cd /home/moslem/Documents/blog/event-bus
 npm start
 ```
 
-Expected output: `Event Bus is running on port 4005`
+Expected output: `service running { port: 4003 }`
 
 ### 2. Terminal 2: Posts Service
 
@@ -41,7 +41,7 @@ cd /home/moslem/Documents/blog/posts
 npm start
 ```
 
-Expected output: `Posts Service is running on port 5000`
+Expected output: `service running { port: 4000 }`
 
 ### 3. Terminal 3: Comments Service
 
@@ -50,18 +50,28 @@ cd /home/moslem/Documents/blog/comments
 npm start
 ```
 
-Expected output: `Comments Service is running on port 5001`
+Expected output: `service running { port: 4001 }`
 
-### 4. Terminal 4: Query Service
+### 4. Terminal 4: Moderation Service
+
+```bash
+cd /home/moslem/Documents/blog/moderation
+npm install
+npm start
+```
+
+Expected output: `service running { port: 4004 }`
+
+### 5. Terminal 5: Query Service
 
 ```bash
 cd /home/moslem/Documents/blog/query
 npm start
 ```
 
-Expected output: `Query Service is running on port 5002`
+Expected output: `service running { port: 4002 }`
 
-### 5. Terminal 5: React Client
+### 6. Terminal 6: React Client
 
 ```bash
 cd /home/moslem/Documents/blog/client
@@ -77,30 +87,31 @@ Expected output: Open `http://localhost:5173` in your browser
 ### Creating a Post
 
 ```
-Client → POST /posts (5000)
+Client → POST /posts (4000)
    → PostCreated event → Event Bus → Query Service
-   → Client polls /posts (5002) → Display
+   → Client polls /posts (4002) → Display
 ```
 
 ### Creating a Comment
 
 ```
-Client → POST /posts/:id/comments (5001)
-   → CommentCreated event → Event Bus → Query Service
-   → Client polls /posts (5002) → Display
+Client → POST /posts/:id/comments (4001)
+   → CommentCreated event → Event Bus → Moderation Service
+   → CommentModerated event → Event Bus → Comments + Query Services
+   → Client polls /posts (4002) → Display
 ```
 
 ### Fetching Data
 
 ```
-Client → GET /posts (5002) ← Query Service (has all data)
+Client → GET /posts (4002) ← Query Service (has all data)
 ```
 
 ---
 
 ## 🔌 API Endpoints
 
-### Posts Service (5000)
+### Posts Service (4000)
 
 - `GET /posts` - Get all posts
 - `POST /posts` - Create new post
@@ -108,7 +119,7 @@ Client → GET /posts (5002) ← Query Service (has all data)
   { "title": "My Post" }
   ```
 
-### Comments Service (5001)
+### Comments Service (4001)
 
 - `GET /posts/:postId/comments` - Get comments for a post
 - `POST /posts/:postId/comments` - Create new comment
@@ -116,7 +127,7 @@ Client → GET /posts (5002) ← Query Service (has all data)
   { "content": "My comment" }
   ```
 
-### Query Service (5002)
+### Query Service (4002)
 
 - `GET /posts` - Get all posts with their comments
   ```json
@@ -124,10 +135,22 @@ Client → GET /posts (5002) ← Query Service (has all data)
     {
       "id": "abc123",
       "title": "My Post",
-      "comments": [{ "id": "xyz789", "postId": "abc123", "content": "Great!" }]
+      "comments": [
+        {
+          "id": "xyz789",
+          "postId": "abc123",
+          "content": "Great!",
+          "status": "accepted"
+        }
+      ]
     }
   ]
   ```
+
+### Moderation Service (4004)
+
+- `POST /events` - Receives `CommentCreated` and emits `CommentModerated`
+- Rejects comments containing `stupid`
 
 ---
 
@@ -151,18 +174,18 @@ Client → GET /posts (5002) ← Query Service (has all data)
 
 - Make sure you have Node.js installed
 - Run `npm install` in each service directory
-- Kill any processes on ports 4005, 5000, 5001, 5002, 5173
+- Kill any processes on ports 4000, 4001, 4002, 4003, 4004, 5173
 
 ### Event Bus errors
 
-- Always start Event Bus first (port 4005)
+- Always start Event Bus first (port 4003)
 - Check console logs for failed POST attempts
 
 ### Client can't connect
 
 - Verify all backend services are running
 - Open browser DevTools → Console for CORS errors
-- Check network tab to see requests to localhost:5002
+- Check network tab to see requests to localhost:4002
 
 ### No posts showing
 
@@ -177,7 +200,7 @@ Client → GET /posts (5002) ← Query Service (has all data)
 ### Create a post
 
 ```bash
-curl -X POST http://localhost:5000/posts \
+curl -X POST http://localhost:4000/posts \
   -H "Content-Type: application/json" \
   -d '{"title":"Hello World"}'
 ```
@@ -185,13 +208,13 @@ curl -X POST http://localhost:5000/posts \
 ### Get all posts
 
 ```bash
-curl http://localhost:5000/posts
+curl http://localhost:4000/posts
 ```
 
 ### Add a comment (replace with actual post ID)
 
 ```bash
-curl -X POST http://localhost:5001/posts/abc123/comments \
+curl -X POST http://localhost:4001/posts/abc123/comments \
   -H "Content-Type: application/json" \
   -d '{"content":"Nice post!"}'
 ```
@@ -199,7 +222,7 @@ curl -X POST http://localhost:5001/posts/abc123/comments \
 ### Get posts with comments
 
 ```bash
-curl http://localhost:5002/posts
+curl http://localhost:4002/posts
 ```
 
 ---
@@ -220,10 +243,11 @@ curl http://localhost:5002/posts
 
 | Service   | Port | Responsibility                   |
 | --------- | ---- | -------------------------------- |
-| Posts     | 5000 | Create & list posts              |
-| Comments  | 5001 | Create & list comments           |
-| Query     | 5002 | Aggregate data & serve to client |
-| Event Bus | 4005 | Route events between services    |
+| Posts | 4000 | Create & list posts |
+| Comments | 4001 | Create & list comments and store moderation status |
+| Query | 4002 | Aggregate data & serve to client |
+| Event Bus | 4003 | Route events between services |
+| Moderation | 4004 | Decide whether comments are accepted or rejected |
 | Client    | 5173 | React UI                         |
 
 ---

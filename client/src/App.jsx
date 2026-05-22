@@ -3,9 +3,9 @@ import { CreatePost } from './components/CreatePost'
 import { PostsList } from './components/PostsList'
 import './styles/App.css'
 
-const QUERY_SERVICE_URL = 'http://localhost:4002'
-const POSTS_SERVICE_URL = 'http://localhost:4000'
-const COMMENTS_SERVICE_URL = 'http://localhost:4001'
+const QUERY_SERVICE_URL = import.meta.env.VITE_QUERY_SERVICE_URL || 'http://localhost:4002'
+const POSTS_SERVICE_URL = import.meta.env.VITE_POSTS_SERVICE_URL || 'http://localhost:4000'
+const COMMENTS_SERVICE_URL = import.meta.env.VITE_COMMENTS_SERVICE_URL || 'http://localhost:4001'
 
 const parseErrorMessage = async (response, fallbackMessage) => {
   try {

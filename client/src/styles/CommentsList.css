@@ -42,6 +42,22 @@
   border-left: 3px solid #f5576c;
   transition: all 0.3s ease;
   animation: slideInComment 0.4s ease-out backwards;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.comment-item.pending {
+  border-left-color: #d97706;
+}
+
+.comment-item.accepted {
+  border-left-color: #16a34a;
+}
+
+.comment-item.rejected {
+  border-left-color: #dc2626;
 }
 
 .comment-item:nth-child(1) {
@@ -75,6 +91,30 @@
   line-height: 1.5;
   display: block;
   word-break: break-word;
+  min-width: 0;
+}
+
+.comment-status {
+  color: #555;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+}
+
+.comment-item.pending .comment-status {
+  color: #92400e;
+}
+
+.comment-item.accepted .comment-status {
+  color: #166534;
+}
+
+.comment-item.rejected .comment-status {
+  color: #991b1b;
 }
 
 @keyframes slideInComment {

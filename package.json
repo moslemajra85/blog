@@ -1,0 +1,25 @@
+{
+  "name": "blog-microservices",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npm run docker:up",
+    "start:detached": "npm run docker:up:detached",
+    "docker:up": "docker compose up --build",
+    "docker:up:detached": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "docker:down:volumes": "docker compose down -v",
+    "docker:logs": "docker compose logs -f",
+    "health:services": "curl -fsS http://localhost:4000/health && curl -fsS http://localhost:4001/health && curl -fsS http://localhost:4002/health && curl -fsS http://localhost:4003/health",
+    "db:health": "docker compose exec postgres pg_isready -U blog -d posts_db",
+    "db:psql": "docker compose exec postgres psql -U blog -d posts_db",
+    "db:databases": "docker compose exec postgres psql -U blog -d postgres -c \"\\l\"",
+    "db:tables": "docker compose exec postgres psql -U blog -d posts_db -c \"\\dt\" && docker compose exec postgres psql -U blog -d comments_db -c \"\\dt\" && docker compose exec postgres psql -U blog -d query_db -c \"\\dt\" && docker compose exec postgres psql -U blog -d event_bus_db -c \"\\dt\"",
+    "db:posts": "docker compose exec postgres psql -U blog -d posts_db -c \"SELECT * FROM posts ORDER BY created_at DESC;\"",
+    "db:comments": "docker compose exec postgres psql -U blog -d comments_db -c \"SELECT * FROM comments ORDER BY created_at DESC;\"",
+    "db:query-posts": "docker compose exec postgres psql -U blog -d query_db -c \"SELECT * FROM query_posts ORDER BY created_at DESC;\"",
+    "db:query-comments": "docker compose exec postgres psql -U blog -d query_db -c \"SELECT * FROM query_comments ORDER BY created_at DESC;\"",
+    "db:events": "docker compose exec postgres psql -U blog -d event_bus_db -c \"SELECT id, type, data, created_at FROM events ORDER BY id DESC LIMIT 50;\""
+  }
+}
